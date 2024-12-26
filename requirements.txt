@@ -38,5 +38,3 @@ tornado==6.4.2
 typing_extensions==4.12.2
 tzdata==2024.2
 urllib3==2.3.0
-# 在文件末尾加上
-python_version >= 3.10.15
