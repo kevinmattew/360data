@@ -1,0 +1,43 @@
+name: Build and Package Python Application
+
+on:
+  push:
+    branches:
+      - main  # 在推送到 main 分支时触发
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]  # 针对 Windows 和 MacOS 进行打包
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3  # 检出代码
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'  # 指定 Python 版本
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt  # 安装依赖
+
+    - name: Package application
+      run: |
+        pyinstaller --onefile app.py  # 使用 pyinstaller 打包为单个可执行文件
+      env:
+        PYTHONUTF8: "1"  # 确保 Python 输出为 UTF-8
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: packaged-app
+        path: dist/app.exe  # 对于 Windows，将文件路径改为 app.exe
