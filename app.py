@@ -5,44 +5,53 @@ def clean_data(file):
     try:
         # 读取 CSV 数据
         data = pd.read_csv(file)
-
         cleaned_data = []
-
-        for col in data.columns:
-            if col.endswith('（1'):
-                new_col = col[:-3]
-            else:
-                new_col = col
-            parts = new_col.split('.')
-            if len(parts) > 1:
-                sub_parts = parts[1].split(':')
-                if len(sub_parts) > 1:
-                    area = sub_parts[0].strip()
-                    name_parts = sub_parts[1].split('-')
-                    if len(name_parts) > 1:
-                        name = name_parts[0].strip()
-                        dimension = name_parts[1].strip()
-                        for index, value in data[col].items():
-                            if pd.notnull(value):
-                                print(f"处理行: {index}, 列: {col}, 值: {value}, 区域: {area}, 姓名: {name}, 维度: {dimension}")  # 添加打印语句
-                                existing_row = next(
-                                    (r for r in cleaned_data if r['被测人员姓名'] == name and r['单位'] == area), None
-                                )
-                                if existing_row:
-                                    print(f"更新行: {existing_row}")  # 打印更新前的行
-                                    existing_row[dimension] = value
-                                    print(f"更新后行: {existing_row}")  # 打印更新后的行
+        
+        # 按行遍历数据
+        for index, row in data.iterrows():
+            # 存储当前行的处理结果
+            current_person_data = {}
+            
+            for col in data.columns:
+                if pd.notnull(row[col]):  # 检查单元格是否有值
+                    # 解析列名
+                    if col.endswith('（1'):
+                        col_name = col[:-3]
+                    else:
+                        col_name = col
+                        
+                    parts = col_name.split('.')
+                    if len(parts) > 1:
+                        question_num = parts[0]  # 题号
+                        sub_parts = parts[1].split(':')
+                        if len(sub_parts) > 1:
+                            area = sub_parts[0].strip()  # 区域
+                            name_parts = sub_parts[1].split('-')
+                            if len(name_parts) > 1:
+                                name = name_parts[0].strip()  # 姓名
+                                dimension = name_parts[1].split('（')[0].strip()  # 评测维度
+                                value = row[col]
+                                
+                                # 如果这个人的数据还没有创建，则创建新记录
+                                if name not in current_person_data:
+                                    current_person_data[name] = {
+                                        '被测人员姓名': name,
+                                        '单位': area,
+                                        dimension: value
+                                    }
                                 else:
-                                    new_row = {'被测人员姓名': name, '单位': area, dimension: value}
-                                    print(f"添加新行: {new_row}")  # 打印添加的新行
-                                    cleaned_data.append(new_row)
-
+                                    # 如果已存在这个人的记录，则添加新的维度数据
+                                    current_person_data[name][dimension] = value
+            
+            # 将当前行处理的所有人员数据添加到结果列表
+            cleaned_data.extend(current_person_data.values())
+        
         # 转换为 DataFrame
         cleaned_df = pd.DataFrame(cleaned_data)
-
+        
         if '总体评价' not in cleaned_df.columns:
             cleaned_df['总体评价'] = ''
-
+            
         return cleaned_df
 
     except Exception as e:
